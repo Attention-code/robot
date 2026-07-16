@@ -77,12 +77,12 @@ static void Arm_Read_Feedback(void)
 static void Arm_Cascade_PID_Update(void)
 {
     /* 三电机 MIT 位置模式 */
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         float delta = (float)i6x_ctrl.ch[i] / 660.0f * 0.01f;
 
         /* 死区 */
-        if (i6x_ctrl.ch[i] > -10 && i6x_ctrl.ch[i] < 10)
+        if (i6x_ctrl.ch[i] > -RC_DEADBAND && i6x_ctrl.ch[i] < RC_DEADBAND)
             delta = 0.0f;
 
         /* 累加目标位置，限幅 ±12.0 弧度 */
@@ -95,13 +95,47 @@ static void Arm_Cascade_PID_Update(void)
         DM_Motor_CAN_TxMessage(
             &FDCAN2_TxFrame,
             Arm_Joints[i].Motor,
-            Arm_Joints[i].Target_Angle, /* 目标位置（弧度）*/
-            0.0f,          /* 速度 */
-            24.0f,         /* KP */
-            0.8f,          /* KD */
-            0.0f           /* 力矩 */
+            Arm_Joints[i].Target_Angle,
+            0.0f,      /* 速度 */
+            24.0f,     /* KP */
+            0.8f,      /* KD */
+            0.0f       /* 力矩 */
         );
+
     }
+/* ---- 电机 2：开关 swa 平滑过渡 ---- */
+    static float smooth_target_2 = 0.0f;
+    static uint8_t j2_init = 1;
+    if (j2_init) {
+        smooth_target_2 = Arm_Joints[2].Motor->Data.Position; // 上电时跟随当前位置
+        j2_init = 0;
+    }
+
+    /* 根据开关决定最终目标 */
+    float desired_2 = (i6x_ctrl.s[0] == 1) ? 0.0f : 3.0f;
+
+    /* 每周期最大移动量（限制速度）*/
+    const float max_step = 0.015f;   // 弧度/步，5ms 周期对应 ~3 rad/s
+    if (desired_2 > smooth_target_2) {
+        smooth_target_2 += max_step;
+        if (smooth_target_2 > desired_2) smooth_target_2 = desired_2;
+    } else if (desired_2 < smooth_target_2) {
+        smooth_target_2 -= max_step;
+        if (smooth_target_2 < desired_2) smooth_target_2 = desired_2;
+    }
+
+    Arm_Joints[2].Target_Angle = smooth_target_2;
+
+    /* 适当降低增益，让运动更柔顺 */
+    DM_Motor_CAN_TxMessage(&FDCAN2_TxFrame,
+                           Arm_Joints[2].Motor,
+                           Arm_Joints[2].Target_Angle,
+                           0.0f,
+                           8.0f,   // KP 从 24 降到 8
+                           0.5f,   // KD 可微调
+                           0.0f);
+
+
 }       
 /* ========================================================================= */
 /* ======================== 6. 调试打印 ==================================== */
@@ -155,10 +189,8 @@ void Arm_Control_Task(void const * argument)
         if (++print_cnt >= 200)
         {
             print_cnt = 0;
-            usart_printf("J0:St%d P%.2f | J1:St%d P%.2f | J2:St%d P%.2f\r\n",
-                         Arm_Joints[0].Motor->Data.State, Arm_Joints[0].Motor->Data.Position,
-                         Arm_Joints[1].Motor->Data.State, Arm_Joints[1].Motor->Data.Position,
-                         Arm_Joints[2].Motor->Data.State, Arm_Joints[2].Motor->Data.Position);
+            usart_printf("J2:St%d P%.2f\r\n" ,
+                         i6x_ctrl.s[0], Arm_Joints[2].Motor->Data.Position);
         }
 
         osDelayUntil(&Arm_Task_SysTick, 5);
