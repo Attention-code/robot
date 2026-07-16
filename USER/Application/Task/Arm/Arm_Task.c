@@ -97,7 +97,7 @@ static void Arm_Cascade_PID_Update(void)
             Arm_Joints[i].Motor,
             Arm_Joints[i].Target_Angle, /* 目标位置（弧度）*/
             0.0f,          /* 速度 */
-            25.0f,         /* KP */
+            24.0f,         /* KP */
             0.8f,          /* KD */
             0.0f           /* 力矩 */
         );
