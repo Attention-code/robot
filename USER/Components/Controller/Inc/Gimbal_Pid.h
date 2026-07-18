@@ -34,8 +34,8 @@ typedef struct {
     float Out;
 } LowPassFilter1p_TypeDef;
 
-extern void LowPassFilter1p_Init(LowPassFilter1p_TypeDef *lpf, float alpha);
-extern float LowPassFilter1p_Update(LowPassFilter1p_TypeDef *lpf, float input);
+//extern void LowPassFilter1p_Init(LowPassFilter1p_TypeDef *lpf, float alpha);
+//extern float LowPassFilter1p_Update(LowPassFilter1p_TypeDef *lpf, float input);
 
 // PID 模式枚举
 typedef enum {

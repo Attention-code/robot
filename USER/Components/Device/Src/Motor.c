@@ -181,43 +181,62 @@ DM_Motor_Info_Typedef DM_4310_Motor[ARM_JOINT_NUM] =
             .RxIdentifier = 0x13, // TODO: 自行修改
         },
     },
-    [3] = {
+};
+      /*达妙4340电机。两个4340p，两个4340*/
+DM_Motor_Info_Typedef DM_4340_Motor[4] = {
+    [0] = { // 第1个电机：DM4340P
         .Control_Mode = MIT,
         .Param_Range = {
-            .P_MAX = 12.5f,
-            .V_MAX = 30.0f,
-            .T_MAX = 10.0f
+            .P_MAX = 12.5f,   // TODO: 请以上位机显示为准
+            .V_MAX = 10.0f,   // TODO: 请以上位机显示为准
+            .T_MAX = 28.0f    // 4340P 扭矩限幅建议先设大一点，实际以上位机为准
         },
         .FDCANFrame = {
-            .TxIdentifier = 0x08, // TODO: 自行修改
-            .RxIdentifier = 0x18, // TODO: 自行修改
+            .TxIdentifier = 0x04, // TODO: 根据实际CAN总线分配（避免与0x01~0x0A冲突）
+            .RxIdentifier = 0x14, // TODO: 需与Tx配成一对
         },
     },
-    [4] = {
+    [1] = { // 第2个电机：DM4340P
         .Control_Mode = MIT,
         .Param_Range = {
             .P_MAX = 12.5f,
             .V_MAX = 30.0f,
-            .T_MAX = 10.0f
+            .T_MAX = 18.0f
         },
         .FDCANFrame = {
-            .TxIdentifier = 0x09, // TODO: 自行修改
-            .RxIdentifier = 0x19, // TODO: 自行修改
+            .TxIdentifier = 0x0C,
+            .RxIdentifier = 0x1C,
         },
     },
-    [5] = {
+    [2] = { // 第3个电机：DM4340（非P版）
         .Control_Mode = MIT,
         .Param_Range = {
             .P_MAX = 12.5f,
             .V_MAX = 30.0f,
-            .T_MAX = 10.0f
+            .T_MAX = 12.0f    // 普通4340扭矩限幅比P版略小
         },
         .FDCANFrame = {
-            .TxIdentifier = 0x0A, // TODO: 自行修改
-            .RxIdentifier = 0x1A, // TODO: 自行修改
+            .TxIdentifier = 0x0D,
+            .RxIdentifier = 0x1D,
+        },
+    },
+    [3] = { // 第4个电机：DM4340（非P版）
+        .Control_Mode = MIT,
+        .Param_Range = {
+            .P_MAX = 12.5f,
+            .V_MAX = 30.0f,
+            .T_MAX = 12.0f
+        },
+        .FDCANFrame = {
+            .TxIdentifier = 0x0E,
+            .RxIdentifier = 0x1E,
         },
     },
 };
+
+
+
+
 
 //------------------------------------------------------------------------------
 
