@@ -29,9 +29,10 @@ static void Arm_Control_Init(void)
     Arm_Joints[1].Motor = &DM_4310_Motor[1];
     Arm_Joints[2].Motor = &DM_4310_Motor[2];
     Arm_Joints[3].Motor = &DM_4340_Motor[0];
-    // Arm_Joints[4].Motor = &DM_4310_Motor[4];
-    // Arm_Joints[5].Motor = &DM_4310_Motor[5];
-
+    Arm_Joints[4].Motor = &DM_8009_Motor[0];
+   // Arm_Joints[5].Motor = &DM_8009_Motor[1];
+    
+  
     for (uint8_t i = 0; i < ARM_JOINT_NUM; i++)
     {
         Arm_Joints[i].Target_Angle = 0.0f;
@@ -39,7 +40,7 @@ static void Arm_Control_Init(void)
         Arm_Joints[i].Current_Velocity = 0.0f;
     }
 
-    // usart_printf("[Arm] Arm_Control_Init OK, %d joints initialized.\r\n", ARM_JOINT_NUM);
+     usart_printf("[Arm] Arm_Control_Init OK, %d joints initialized.\r\n", ARM_JOINT_NUM);
 }
 
 /* ========================================================================= */
@@ -49,7 +50,7 @@ static void Arm_Control_Init(void)
 static void Arm_Read_Feedback(void)
 {
     /* 只读取前4个已绑定的关节，避免访问 NULL 指针 */
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 5; i++)
     {
         if (Arm_Joints[i].Motor == NULL) continue;
         Arm_Joints[i].Current_Angle    = Arm_Joints[i].Motor->Data.Position * Rad_to_angle;
@@ -111,6 +112,53 @@ static void Arm_Cascade_PID_Update(void)
         );
     }
 
+    /* ---- 关节4（8009）：摇杆 ch[3] 增量控制 ---- */
+    if (Arm_Joints[4].Motor != NULL)
+    {
+        float delta_4 = (float)i6x_ctrl.ch[3] / 660.0f * 0.02f;
+        if (i6x_ctrl.ch[3] > -RC_DEADBAND && i6x_ctrl.ch[3] < RC_DEADBAND)
+            delta_4 = 0.0f;
+
+        Arm_Joints[4].Target_Angle += delta_4;
+        if (Arm_Joints[4].Target_Angle > 12.0f)
+            Arm_Joints[4].Target_Angle = 12.0f;
+        if (Arm_Joints[4].Target_Angle < -12.0f)
+            Arm_Joints[4].Target_Angle = -12.0f;
+
+        DM_Motor_CAN_TxMessage(
+            &FDCAN2_TxFrame,
+            Arm_Joints[4].Motor,
+            Arm_Joints[4].Target_Angle,
+            0.0f,
+            20.0f,
+            0.5f,
+            0.0f
+        );
+    }
+
+    //  /* ---- 关节5（8009）：摇杆 ch[3] 增量控制 ---- */
+    // if (Arm_Joints[5].Motor != NULL)
+    // {
+    //     float delta_5 = (float)i6x_ctrl.ch[3] / 660.0f * 0.02f;
+    //     if (i6x_ctrl.ch[3] > -RC_DEADBAND && i6x_ctrl.ch[3] < RC_DEADBAND)
+    //         delta_5 = 0.0f;
+
+    //     Arm_Joints[5].Target_Angle += delta_5;
+    //     if (Arm_Joints[5].Target_Angle > 12.0f)
+    //         Arm_Joints[5].Target_Angle = 12.0f;
+    //     if (Arm_Joints[5].Target_Angle < -12.0f)
+    //         Arm_Joints[5].Target_Angle = -12.0f;
+
+    //     DM_Motor_CAN_TxMessage(
+    //         &FDCAN2_TxFrame,
+    //         Arm_Joints[5].Motor,
+    //         Arm_Joints[5].Target_Angle,
+    //         0.0f,
+    //         20.0f,
+    //         0.5f,
+    //         0.0f
+    //     );
+    // }
     /* ---- 关节2（4310）：拨杆 swa 平滑过渡 ---- */
     if (Arm_Joints[2].Motor != NULL)
     {
@@ -155,10 +203,12 @@ void Arm_Control_Task(void const * argument)
     DM_Motor_Command(&FDCAN2_TxFrame, Arm_Joints[1].Motor, Motor_Enable);
     DM_Motor_Command(&FDCAN2_TxFrame, Arm_Joints[2].Motor, Motor_Enable);
     DM_Motor_Command(&FDCAN2_TxFrame, Arm_Joints[3].Motor, Motor_Enable);
+    DM_Motor_Command(&FDCAN2_TxFrame, Arm_Joints[4].Motor, Motor_Enable);
+  //  DM_Motor_Command(&FDCAN2_TxFrame, Arm_Joints[5].Motor, Motor_Enable);
     osDelay(200);
 
     /* 初始化各电机目标位置为当前位置 */
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 5; i++)
     {
         if (Arm_Joints[i].Motor == NULL) continue;
         Arm_Joints[i].Target_Angle = Arm_Joints[i].Motor->Data.Position;
@@ -171,20 +221,21 @@ void Arm_Control_Task(void const * argument)
         Arm_Read_Feedback();
         Arm_Cascade_PID_Update();
 
-        // if (++print_cnt >= 200)
-        // {
-        //    print_cnt = 0;
-         //   if (Arm_Joints[2].Motor != NULL)
-        //     {
-        //         usart_printf("%d ,%.2f\r\n",Arm_Joints[1].Current_Velocity, Arm_Joints[1].Motor->Data.Position);
-        //     }
-        // }
+        if (++print_cnt >= 200)
+        {
+           print_cnt = 0;
+           if (Arm_Joints[2].Motor != NULL)
+            {
+                usart_printf("V:%d ,P:%.2f\r\n",Arm_Joints[1].Current_Velocity, Arm_Joints[1].Motor->Data.Position);
+            }
+        }
 
-if (++print_cnt >= 1000) {
-   print_cnt = 0;
-    UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-    usart_printf("Stack free: %d\r\n", uxHighWaterMark);
-}
+       if (++print_cnt >= 1000)
+        {
+         print_cnt = 0;
+         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+         usart_printf("Stack free: %d\r\n", uxHighWaterMark);
+        }
 
         osDelayUntil(&Arm_Task_SysTick, 5);
     }

@@ -152,7 +152,7 @@ typedef struct
 /* Externs ------------------------------------------------------------------*/
 extern DJI_Motor_Info_Typedef DJI_GIMBAL_Motor[2],Chassis_Motor[4];
 
-extern DM_Motor_Info_Typedef DM_8009_Motor[4];
+extern DM_Motor_Info_Typedef DM_8009_Motor[2];
 
 extern DM_Motor_Info_Typedef DM_4310_Motor[ARM_JOINT_NUM];
 

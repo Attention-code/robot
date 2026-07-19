@@ -77,64 +77,35 @@ DJI_Motor_Info_Typedef Chassis_Motor[4] = {
 /**
  * @brief The structure that contains the Information of joint motor.Use DM 8009 motor.
  */
-DM_Motor_Info_Typedef DM_8009_Motor[4]= {
+DM_Motor_Info_Typedef DM_8009_Motor[2]= {
     
 	  [0] = {
 			.Control_Mode = MIT,
 			.Param_Range ={
-			   .P_MAX = 3.141593f,
+			   .P_MAX = 12.5f,
 			   .V_MAX = 45.f,
 			   .T_MAX = 54.f		
 			},
 		  .FDCANFrame = {
-				 .TxIdentifier = 0x01,
-				 .RxIdentifier = 0x11,
+				 .TxIdentifier = 0x07,
+				 .RxIdentifier = 0x17,
 			},
 		},
 		
     [1] = {
 			.Control_Mode = MIT,	
 			.Param_Range ={
-			   .P_MAX = 3.141593f,
+			   .P_MAX = 12.5f,
 			   .V_MAX = 45.f,
 			   .T_MAX = 54.f		
 				
 			},	
 		  .FDCANFrame = {
-				 .TxIdentifier = 0x02,
-				 .RxIdentifier = 0x12,
+				 .TxIdentifier = 0x08,
+				 .RxIdentifier = 0x18,
 			},
 		},
 		
-    [2] = {
-			.Control_Mode = MIT,
-      .Param_Range ={
-			   .P_MAX = 3.141593f,
-			   .V_MAX = 45.f,
-			   .T_MAX = 54.f		
-				
-			},	
-		  .FDCANFrame = {
-				 .TxIdentifier = 0x03,
-				 .RxIdentifier = 0x13,
-			},
-		},
-		
-	  [3] = {
-			 .Control_Mode = MIT,	
-			 .Param_Range ={
-			   .P_MAX = 3.141593f,
-			   .V_MAX = 45.f,
-			   .T_MAX = 54.f		
-				
-			},	
-		  .FDCANFrame = {
-				 .TxIdentifier = 0x04,
-				 .RxIdentifier = 0x14,
-			},
-		},
-  
-
 };
 
 /**
