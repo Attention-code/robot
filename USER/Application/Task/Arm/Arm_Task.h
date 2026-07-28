@@ -51,6 +51,17 @@ typedef struct
     DM_Motor_Info_Typedef *Motor; /*!< 指向该关节对应的达妙电机结构体 */
 } Arm_Joint_Control_Typedef;
 
+/**
+ * @brief 关节参数配置结构体（专用于开头集中修改）
+ */
+typedef struct {
+    DM_Motor_Info_Typedef *motor_ptr; // 电机指针
+    float kp;                         // 位置环Kp
+    float kd;                         // 速度环Kd
+} Arm_Motor_Config_t;
+
+
+
 /* 外部接口 */
 extern Arm_Joint_Control_Typedef Arm_Joints[ARM_JOINT_NUM];
 extern void Arm_Control_Task(void const * argument);

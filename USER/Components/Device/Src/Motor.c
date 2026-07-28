@@ -153,8 +153,10 @@ DM_Motor_Info_Typedef DM_4310_Motor[ARM_JOINT_NUM] =
         },
     },
 };
+
+
       /*达妙4340电机。两个4340p，两个4340*/
-DM_Motor_Info_Typedef DM_4340_Motor[4] = {
+DM_Motor_Info_Typedef DM_4340_Motor[3] = {
     [0] = { // 第1个电机：DM4340P
         .Control_Mode = MIT,
         .Param_Range = {
@@ -167,19 +169,7 @@ DM_Motor_Info_Typedef DM_4340_Motor[4] = {
             .RxIdentifier = 0x14, // TODO: 需与Tx配成一对
         },
     },
-    [1] = { // 第2个电机：DM4340P
-        .Control_Mode = MIT,
-        .Param_Range = {
-            .P_MAX = 12.5f,
-            .V_MAX = 30.0f,
-            .T_MAX = 18.0f
-        },
-        .FDCANFrame = {
-            .TxIdentifier = 0x0C,
-            .RxIdentifier = 0x1C,
-        },
-    },
-    [2] = { // 第3个电机：DM4340（非P版）
+    [1] = { // 第2个电机：DM4340（非P版）
         .Control_Mode = MIT,
         .Param_Range = {
             .P_MAX = 12.5f,
@@ -187,11 +177,11 @@ DM_Motor_Info_Typedef DM_4340_Motor[4] = {
             .T_MAX = 12.0f    // 普通4340扭矩限幅比P版略小
         },
         .FDCANFrame = {
-            .TxIdentifier = 0x0D,
-            .RxIdentifier = 0x1D,
+            .TxIdentifier = 0x05,
+            .RxIdentifier = 0x15,
         },
     },
-    [3] = { // 第4个电机：DM4340（非P版）
+    [2] = { // 第3个电机：DM4340（非P版）
         .Control_Mode = MIT,
         .Param_Range = {
             .P_MAX = 12.5f,
@@ -199,8 +189,8 @@ DM_Motor_Info_Typedef DM_4340_Motor[4] = {
             .T_MAX = 12.0f
         },
         .FDCANFrame = {
-            .TxIdentifier = 0x0E,
-            .RxIdentifier = 0x1E,
+            .TxIdentifier = 0x06,
+            .RxIdentifier = 0x16,
         },
     },
 };
