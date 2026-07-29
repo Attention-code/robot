@@ -217,16 +217,16 @@ static void FDCAN2_RxFifo1RxHandler(uint32_t *Identifier,uint8_t Data[8])
 	// 原有的 8009 保持不变
 	DM_Motor_Info_Update(Identifier,Data,&DM_8009_Motor[0]);
 	DM_Motor_Info_Update(Identifier,Data,&DM_8009_Motor[1]);
-	DM_Motor_Info_Update(Identifier,Data,&DM_8009_Motor[2]);
-	DM_Motor_Info_Update(Identifier,Data,&DM_8009_Motor[3]);
 
-		// 【必须新增】让 CAN2 把收到的数据也喂给 4310 ！
+	// 4340 反馈数据
+	DM_Motor_Info_Update(Identifier, Data, &DM_4340_Motor[0]);
+	DM_Motor_Info_Update(Identifier, Data, &DM_4340_Motor[1]);
+	DM_Motor_Info_Update(Identifier, Data, &DM_4340_Motor[2]);
+
+	// 4310 反馈数据
 	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[0]);
 	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[1]);
 	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[2]);
-	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[3]);
-	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[4]);
-	DM_Motor_Info_Update(Identifier, Data, &DM_4310_Motor[5]);
 }
 
 /**

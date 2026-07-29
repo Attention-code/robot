@@ -156,7 +156,7 @@ extern DM_Motor_Info_Typedef DM_8009_Motor[2];
 
 extern DM_Motor_Info_Typedef DM_4310_Motor[ARM_JOINT_NUM];
 
-extern DM_Motor_Info_Typedef DM_4340_Motor[4];
+extern DM_Motor_Info_Typedef DM_4340_Motor[3];
 
 extern DM_Motor_Contorl_Info_Typedef DM_Motor_Contorl_Info[4];
 
