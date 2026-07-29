@@ -14,7 +14,8 @@
             "compilerPath": "D:/mingw64/bin/gcc.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "gcc-x64"
+            "intelliSenseMode": "gcc-x64",
+            "compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json"
         }
     ],
     "version": 4
