@@ -10,6 +10,7 @@
 #include "LPF.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#include <math.h>
 
 /* ========================================================================= */
 /* ======================== 0. 集中参数配置区 ============================ */
@@ -20,12 +21,12 @@
  */
 static Arm_Motor_Config_t Arm_Config_Table[ARM_JOINT_NUM] = {
     /* 电机指针                Kp     Kd   */
-    { &DM_4310_Motor[0],    20.0f,  0.5f },  // 关节 0: 小臂俯仰 (DM-4310)
+    { &DM_4310_Motor[0],    20.0f,  0.5f },  // 关节 0: 小臂 (DM-4310)
     { &DM_4310_Motor[1],     8.0f,  0.5f },  // 关节 1: 夹爪旋转 (DM-4310)
     { &DM_4310_Motor[2],     8.0f,  0.5f },  // 关节 2: 夹爪电机 (DM-4310)
-    { &DM_4340_Motor[1],    15.0f,  0.8f },  // 关节 3: 小臂俯仰 (DM-4340)
+    { &DM_4340_Motor[1],    20.0f,  0.8f },  // 关节 3: 小臂俯仰 (DM-4340)
     { &DM_4340_Motor[2],    15.0f,  0.8f },  // 关节 4: 小臂旋转 (DM-4340)
-    { &DM_8009_Motor[0],    20.0f,  0.5f },  // 关节 5: 大臂俯仰 (DM-8009)
+    { &DM_8009_Motor[0],    35.0f, 1.5f },  // 关节 5: 大臂俯仰 (DM-8009)
 };
 
 /**
@@ -35,6 +36,23 @@ static Arm_Motor_Config_t Arm_Config_Table[ARM_JOINT_NUM] = {
 Arm_Joint_Control_Typedef Arm_Joints[ARM_JOINT_NUM];
 /* 死区 */
 #define RC_DEADBAND            1
+
+/**
+ * @brief 重力补偿系数（单位：N·m，即电机力矩单位）
+ * @note  这些值需要根据实际机械臂质量、质心位置进行标定：
+ *        G = m * g * L_com
+ */
+#define GRAVITY_COEFF_FOREARM   3.68f
+#define GRAVITY_COEFF_UPPERARM  20.0f
+#define GRAVITY_COEFF_FOREARM_ON_SHOULDER  2.0f
+
+/* 重力补偿方向符号（+1 或 -1），根据电机实际转向调整 */
+#define GRAVITY_SIGN_J3  1.0f
+#define GRAVITY_SIGN_J5  -1.0f
+
+/* 重力补偿低通滤波 & 限幅 */
+#define GRAVITY_LPF_ALPHA   0.05f   /*!< 低通滤波系数，越小越平滑 (0~1)，200Hz 下 0.05≈截止1.6Hz */
+#define J5_GRAVITY_LIMIT    20.0f   /*!< 关节5重力补偿最大输出 (N·m) */
 
 /* ========================================================================= */
 /* ======================== 1. 初始化机械臂控制 ============================ */
@@ -48,8 +66,6 @@ static void Arm_Control_Init(void)
     Arm_Joints[3].Motor = &DM_4340_Motor[1];
     Arm_Joints[4].Motor = &DM_4340_Motor[2];
     Arm_Joints[5].Motor = &DM_8009_Motor[0];
-   // Arm_Joints[5].Motor = &DM_8009_Motor[1];
-    
   
     for (uint8_t i = 0; i < ARM_JOINT_NUM; i++)
     {
@@ -129,8 +145,65 @@ static uint8_t Arm_Hold_Position(void)
     }
     return 0;
 }
+
+/**
+ * @brief  计算各关节所需的重力补偿力矩（前馈）
+ * @note   假设角度单位为弧度，θ=0 时机械臂水平前伸（重力矩最大）。
+ *         关节5(大臂俯仰) 角度为 θ5，关节3(小臂俯仰) 角度为 θ3。
+ *         小臂相对于水平面的有效角度 = θ5 + θ3。
+ * @param  gravity_torque: 输出，长度为 ARM_JOINT_NUM，单位 N·m
+ */
+static void Arm_Calc_Gravity_Torque(float gravity_torque[ARM_JOINT_NUM])
+{
+    /* 低通滤波历史值（静态保持） */
+    static float filtered_j3 = 0.0f;
+    static float filtered_j5 = 0.0f;
+
+    /* 初始化所有关节重力补偿为 0 */
+    for (uint8_t i = 0; i < ARM_JOINT_NUM; i++)
+    {
+        gravity_torque[i] = 0.0f;
+    }
+
+    /* 获取关节角度（单位：弧度） */
+    float theta5 = Arm_Joints[5].Current_Angle;  /* 大臂俯仰（肩关节） */
+    float theta3 = Arm_Joints[3].Current_Angle;  /* 小臂俯仰（肘关节） */
+
+    /* 小臂相对于水平面的有效角度 */
+    float theta_forearm = theta5 + theta3;
+
+    /* ---- 关节3（肘关节/小臂俯仰）重力补偿（含低通滤波）---- */
+    float raw_j3 =
+        GRAVITY_SIGN_J3 *
+        GRAVITY_COEFF_FOREARM *
+        cosf(theta_forearm);
+
+    filtered_j3 = GRAVITY_LPF_ALPHA * raw_j3
+                + (1.0f - GRAVITY_LPF_ALPHA) * filtered_j3;
+    gravity_torque[3] = filtered_j3;
+
+    /* ---- 关节5（肩关节/大臂俯仰）重力补偿（含低通+限幅）---- */
+    /* 大臂自身重力 + 小臂对肩关节的附加重力 */
+    float raw_j5 =
+        GRAVITY_SIGN_J5 *
+        (
+          GRAVITY_COEFF_UPPERARM * cosf(theta5)
+          +
+          GRAVITY_COEFF_FOREARM_ON_SHOULDER * cosf(theta_forearm)
+        );
+
+    filtered_j5 = GRAVITY_LPF_ALPHA * raw_j5
+                + (1.0f - GRAVITY_LPF_ALPHA) * filtered_j5;
+
+    /* 限幅 */
+    if (filtered_j5 >  J5_GRAVITY_LIMIT) filtered_j5 =  J5_GRAVITY_LIMIT;
+    if (filtered_j5 < -J5_GRAVITY_LIMIT) filtered_j5 = -J5_GRAVITY_LIMIT;
+
+    gravity_torque[5] = filtered_j5;
+}
+   
 /* ========================================================================= */
-/* ======================== 3. 控制解算 =================================== */
+/* ======================== 4. 控制解算 =================================== */
 /* ========================================================================= */
 static void Arm_Cascade_PID_Update(void)
 {
@@ -142,6 +215,10 @@ static void Arm_Cascade_PID_Update(void)
     {
         return;
     }
+
+    /* ================= 重力补偿计算 ================= */
+    float gravity_torque[ARM_JOINT_NUM];
+    Arm_Calc_Gravity_Torque(gravity_torque);
 
  /* ---- 夹爪电机，关节2（4310）：拨杆 swa 平滑过渡 ---- */
     if (Arm_Joints[2].Motor != NULL)
@@ -172,7 +249,7 @@ static void Arm_Cascade_PID_Update(void)
                                0.0f,
                                Arm_Config_Table[2].kp,
                                Arm_Config_Table[2].kd,
-                               0.0f);
+                               gravity_torque[2]);
     }
 
 
@@ -204,7 +281,7 @@ static void Arm_Cascade_PID_Update(void)
             0.0f,
             Arm_Config_Table[1].kp,
             Arm_Config_Table[1].kd,
-            0.0f
+            gravity_torque[1]
         );
     }
 
@@ -226,7 +303,7 @@ static void Arm_Cascade_PID_Update(void)
             0.0f,
             Arm_Config_Table[0].kp,
             Arm_Config_Table[0].kd,
-            0.0f
+            gravity_torque[0]
         );
     }
 
@@ -250,7 +327,7 @@ static void Arm_Cascade_PID_Update(void)
             0.0f,
             Arm_Config_Table[4].kp,
             Arm_Config_Table[4].kd,
-            0.0f
+            gravity_torque[4]
         );
     }
 
@@ -274,7 +351,7 @@ static void Arm_Cascade_PID_Update(void)
             0.0f,
             Arm_Config_Table[3].kp,
             Arm_Config_Table[3].kd,
-            0.0f
+            gravity_torque[3]
         );
     }
 
@@ -298,7 +375,7 @@ static void Arm_Cascade_PID_Update(void)
             0.0f,
             Arm_Config_Table[5].kp,
             Arm_Config_Table[5].kd,
-            0.0f
+            gravity_torque[5]
         );
     }
 }
