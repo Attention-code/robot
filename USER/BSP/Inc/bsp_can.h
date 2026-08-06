@@ -24,8 +24,11 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx.h"
 
-/**
- * @brief The structure that contains the Information of FDCAN Transmit.
+/** * @brief FDCAN3 RX callback for board-to-board communication.
+ */
+typedef void (*FDCAN3_RxHandler_t)(uint32_t Identifier, uint8_t Data[8]);
+
+/** * @brief The structure that contains the Information of FDCAN Transmit.
  */
 typedef struct{
 		FDCAN_HandleTypeDef *hcan;
@@ -71,6 +74,8 @@ extern  FDCAN_TxFrame_TypeDef   FDCAN1_TxFrame;
 extern  FDCAN_TxFrame_TypeDef   FDCAN2_TxFrame;
 extern  FDCAN_TxFrame_TypeDef   FDCAN3_TxFrame;
 extern void  USER_FDCAN_AddMessageToTxFifoQ(FDCAN_TxFrame_TypeDef *FDCAN_TxFrame);
+HAL_StatusTypeDef BSP_FDCAN3_SendData(uint32_t Identifier, uint8_t *Data, uint8_t DLC);
+void BSP_FDCAN3_RegisterRxHandler(FDCAN3_RxHandler_t handler);
 extern void BSP_FDCAN_Init(void);
 
 	   

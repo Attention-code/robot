@@ -25,7 +25,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "CAN_Task.h"
 #include "Arm_Task.h"
 /* USER CODE END Includes */
 
@@ -54,7 +53,6 @@ osStaticThreadDef_t defaultTaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-// osThreadId Start_CAN_TaskHandle;
 osThreadId Start_Arm_TaskHandle;
 /* USER CODE END FunctionPrototypes */
 
@@ -115,16 +113,6 @@ void MX_FREERTOS_Init(void) {
       // 六轴机械臂控制任务（200Hz）——栈加大到2048防止printf崩栈
       osThreadDef(Start_Arm_TaskHandle, Arm_Control_Task, osPriorityNormal, 0, 2048);
       Start_Arm_TaskHandle = osThreadCreate(osThread(Start_Arm_TaskHandle), NULL);
-
-  // // 【扩容】：把剩下的任务栈全部改成 1024，防止调用 printf 时栈底爆炸！
-  // osThreadDef(Start_Control_Task,Control_Task, osPriorityNormal, 0, 1024);
-  // Start_Control_TaskHandle = osThreadCreate(osThread(Start_Control_Task), NULL);
-
- // osThreadDef(Start_CAN_Task,CAN_Task, osPriorityNormal, 0, 1024);
- // Start_CAN_TaskHandle = osThreadCreate(osThread(Start_CAN_Task), NULL);
-
-  // osThreadDef(Start_Detect_Task,Detect_Task, osPriorityNormal, 0, 1024);
-  // Start_Detect_TaskHandle = osThreadCreate(osThread(Start_Detect_Task), NULL);
 
   /* USER CODE END RTOS_THREADS */
 

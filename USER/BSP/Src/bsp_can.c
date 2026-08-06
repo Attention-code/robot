@@ -72,15 +72,53 @@ FDCAN_TxFrame_TypeDef FDCAN2_TxFrame = {
  */
 FDCAN_TxFrame_TypeDef FDCAN3_TxFrame = {
   .hcan = &hfdcan3,
-  .Header.IdType = FDCAN_STANDARD_ID, 
+  .Header.IdType = FDCAN_STANDARD_ID,
   .Header.TxFrameType = FDCAN_DATA_FRAME,
-  .Header.DataLength = 8,
+  .Header.DataLength = FDCAN_DLC_BYTES_8,
 	.Header.ErrorStateIndicator =  FDCAN_ESI_ACTIVE,
   .Header.BitRateSwitch = FDCAN_BRS_OFF,
-  .Header.FDFormat =  FDCAN_CLASSIC_CAN,           
-  .Header.TxEventFifoControl =  FDCAN_NO_TX_EVENTS,
+  .Header.FDFormat =  FDCAN_CLASSIC_CAN,
+  .Header.TxEventFifoControl = FDCAN_NO_TX_EVENTS,
 	.Header.MessageMarker = 0,
 };
+
+static FDCAN3_RxHandler_t FDCAN3_RxHandler = NULL;
+static const uint32_t FDCAN3_DlcMap[9] = {
+    FDCAN_DLC_BYTES_0,
+    FDCAN_DLC_BYTES_1,
+    FDCAN_DLC_BYTES_2,
+    FDCAN_DLC_BYTES_3,
+    FDCAN_DLC_BYTES_4,
+    FDCAN_DLC_BYTES_5,
+    FDCAN_DLC_BYTES_6,
+    FDCAN_DLC_BYTES_7,
+    FDCAN_DLC_BYTES_8,
+};
+
+HAL_StatusTypeDef BSP_FDCAN3_SendData(uint32_t Identifier, uint8_t *Data, uint8_t DLC)
+{
+    if (Data == NULL || DLC > 8)
+    {
+        return HAL_ERROR;
+    }
+
+    FDCAN3_TxFrame.Header.Identifier = Identifier;
+    FDCAN3_TxFrame.Header.DataLength = FDCAN3_DlcMap[DLC];
+    memset(FDCAN3_TxFrame.Data, 0, sizeof(FDCAN3_TxFrame.Data));
+    memcpy(FDCAN3_TxFrame.Data, Data, DLC);
+
+    if (HAL_FDCAN_GetTxFifoFreeLevel(FDCAN3_TxFrame.hcan) > 0)
+    {
+        return HAL_FDCAN_AddMessageToTxFifoQ(FDCAN3_TxFrame.hcan, &FDCAN3_TxFrame.Header, FDCAN3_TxFrame.Data);
+    }
+
+    return HAL_ERROR;
+}
+
+void BSP_FDCAN3_RegisterRxHandler(FDCAN3_RxHandler_t handler)
+{
+    FDCAN3_RxHandler = handler;
+}
 
 /**
   * @brief  Configures the FDCAN Filter. 
@@ -200,9 +238,10 @@ static void FDCAN1_RxFifo0RxHandler(uint32_t *Identifier,uint8_t Data[8])
   */
 static void FDCAN3_RxFifo0RxHandler(uint32_t *Identifier,uint8_t Data[8])
 {
-
-
-
+    if (FDCAN3_RxHandler != NULL)
+    {
+        FDCAN3_RxHandler(*Identifier, Data);
+    }
 }
 
 

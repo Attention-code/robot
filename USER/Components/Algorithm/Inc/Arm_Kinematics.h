@@ -23,8 +23,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "config.h"
 #include "arm_math.h"
-#include "Motor.h"          /* DM_Motor_CAN_TxMessage 等 */
-#include "Arm_Task.h"       /* Arm_Joints, ARM_JOINT_NUM */
+#include "Arm_Controller.h" /* Arm_Joints, ARM_JOINT_NUM, 坐标转换/安全下发接口 */
 
 /* Exported defines ----------------------------------------------------------*/
 

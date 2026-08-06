@@ -22,8 +22,7 @@
 #include "math.h"
 #include "usart_printf_task.h"
 /* External variables --------------------------------------------------------*/
-/** @brief FDCAN2 发送帧（由 bsp_can 或 fdcan.c 定义，用于下发电机控制指令）*/
-extern FDCAN_TxFrame_TypeDef FDCAN2_TxFrame;
+/* （电机下发统一由 Arm_Controller_Send_Joint 完成，此处不再需要 FDCAN2_TxFrame extern）*/
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -41,66 +40,68 @@ Arm_Kinematics_Info_Typedef Arm_Kinematics;
   *
   *  关节 |  a (m)  | alpha (rad) |  d (m)  | theta_offset (rad) |  限位
   *  ------|---------|-------------|---------|---------------------|----------
-  *  J1   |  待填入  |   待填入    |  待填入  |      待填入         | 待填入
-  *  J2   |  待填入  |   待填入    |  待填入  |      待填入         | 待填入
+  *  J0   |  待填入  |   待填入    |  待填入  |       固定 0        | 待填入
+  *  J1   |  待填入  |   待填入    |  待填入  |       固定 0        | 待填入
   *  ...
   *
   * @note  【重要】以下是占位数据，请替换为实际数值！
-  *        你可以在此函数内硬编码，或在 Arm_Kinematics_Init 时从外部传入。
+  *        theta_offset 必须固定为 0：
+  *        坐标系统一由 Arm_Controller 的零位表负责（编码器角 <-> 关节角），
+  *        FK 输入已是关节坐标（Current_Angle），若 theta_offset 非 0 会造成二次偏移。
   */
 static const DH_Param_Typedef Arm_Kinematics_DH_Default[KIN_JOINT_NUM] =
 {
-    /* ========== 关节 0 (J1 — 腰部旋转) ========== */
+    /* ========== 关节 0 (J0 — 底座旋转) ========== */
     [0] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -3.14f,     /* 约 -180° */
         .theta_max     =  3.14f,     /* 约 +180° */
     },
-    /* ========== 关节 1 (J2 — 大臂俯仰) ========== */
+    /* ========== 关节 1 (J1 — 大臂俯仰) ========== */
     [1] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -2.62f,     /* 约 -150° */
         .theta_max     =  2.62f,     /* 约 +150° */
     },
-    /* ========== 关节 2 (J3 — 小臂俯仰) ========== */
+    /* ========== 关节 2 (J2 — 小臂俯仰) ========== */
     [2] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -2.62f,     /* 约 -150° */
         .theta_max     =  2.62f,     /* 约 +150° */
     },
-    /* ========== 关节 3 (J4 — 腕部旋转) ========== */
+    /* ========== 关节 3 (J3 — 小臂旋转) ========== */
     [3] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -3.14f,     /* 约 -180° */
         .theta_max     =  3.14f,     /* 约 +180° */
     },
-    /* ========== 关节 4 (J5 — 腕部俯仰) ========== */
+    /* ========== 关节 4 (J4 — 腕俯仰) ========== */
     [4] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -2.09f,     /* 约 -120° */
         .theta_max     =  2.09f,     /* 约 +120° */
     },
-    /* ========== 关节 5 (J6 — 腕部旋转/法兰) ========== */
+    /* ========== 关节 5 (J5 — 腕旋转) ========== */
     [5] = {
         .a             = 0.0f,       /* TODO: 填入实际值 */
         .alpha         = 0.0f,       /* TODO: 填入实际值 */
         .d             = 0.0f,       /* TODO: 填入实际值 */
-        .theta_offset  = 0.0f,       /* TODO: 填入实际值 */
+        .theta_offset  = 0.0f,       /* 固定 0：坐标由零位表统一（见 Arm_Controller） */
         .theta_min     = -3.14f,     /* 约 -180° */
         .theta_max     =  3.14f,     /* 约 +180° */
     },
@@ -356,13 +357,14 @@ void Arm_Kinematics_FromFeedback(Arm_Kinematics_Info_Typedef *kin)
         Arm_Kinematics_Init(kin, NULL);
     }
 
-    /* 从 Arm_Joints[] 读取当前关节角度
-     * Arm_Joints[i].Current_Angle 是 "度"，需要转弧度
+    /* 从 Arm_Joints[] 读取当前关节角
+     * Arm_Joints[i].Current_Angle 已是关节坐标（弧度，编码器角已减零位偏移），
+     * 可直接用于正向运动学，无需再做单位/零位换算。
      */
     float joint_rad[KIN_JOINT_NUM];
     for (int i = 0; i < KIN_JOINT_NUM; i++)
     {
-        joint_rad[i] = Arm_Joints[i].Current_Angle * DegreesToRadians;
+        joint_rad[i] = Arm_Joints[i].Current_Angle;
     }
 
     /* 执行正向运动学 */
@@ -404,9 +406,8 @@ bool Arm_Kinematics_ApplyIK(Arm_Kinematics_Info_Typedef *kin,
     }
 
     /* 写入 Arm_Joints[].Target_Angle
-     * Target_Angle 与电机通信时使用弧度（根据现有代码逻辑），
-     * 而 Current_Angle 是度。我们这里统一按弧度写入。
-     * 注意：如果你将 Target_Angle 定义为度，请乘以 Rad_to_angle 转换。
+     * Target_Angle 统一为关节坐标（弧度，与 Current_Angle 同坐标系），
+     * IK 求得的 joint_target[] 即为关节角，直接写入即可。
      */
     for (int i = 0; i < KIN_JOINT_NUM; i++)
     {
@@ -430,15 +431,10 @@ void Arm_Kinematics_SendAll(Arm_Kinematics_Info_Typedef *kin,
     {
         float torque = (ff_torque != NULL) ? ff_torque[i] : 0.0f;
 
-        DM_Motor_CAN_TxMessage(
-            &FDCAN2_TxFrame,
-            Arm_Joints[i].Motor,
-            Arm_Joints[i].Target_Angle,   /* 目标位置 (弧度) */
-            0.0f,                         /* 目标速度 */
-            kp,                           /* 刚度 */
-            kd,                           /* 阻尼 */
-            torque                        /* 前馈力矩 */
-        );
+        /* 统一走 Arm_Controller_Send_Joint：内部做 关节角→编码器角（零位回加），
+         * 并复用 DM_Motor_Ctrl_Safe 安全下发（状态自检 / 故障锁存）。
+         * 目标为关节坐标（弧度），与全局约定一致。 */
+        Arm_Controller_Send_Joint(i, Arm_Joints[i].Target_Angle, kp, kd, torque);
     }
 }
 

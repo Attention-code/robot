@@ -21,6 +21,7 @@
 #include "bsp_adc.h"
 #include "bmi088.h"
 #include "usb_device.h"
+#include "B2B_Communication.h"
 
 /**
   * @brief Initializes the MCU.
@@ -35,6 +36,7 @@ void MCU_Init(void)
 	BSP_ADC_Init();
 	MX_USB_DEVICE_Init();
   /* ----------------------- Device Init ----------------------- */
+  B2B_Init();
   BMI088_Init();
 }
 //------------------------------------------------------------------------------

@@ -15,6 +15,7 @@
 #include "stdbool.h"
 #include "string.h"
 #include "math.h"
+#include "LPF.h"
 
 // 通用限幅宏定义 (如果你在别的地方定义了，可以注释掉这行)
 #ifndef VAL_LIMIT
@@ -27,15 +28,6 @@ do {\
 
 /* PID 参数数量从 7 个扩充到 9 个 */
 #define PID_PARAMETER_NUM 9
-
-// 你的低通滤波器结构体 (假设已在其他文件中定义，这里提供基础结构备用)
-typedef struct {
-    float Alpha;
-    float Out;
-} LowPassFilter1p_TypeDef;
-
-//extern void LowPassFilter1p_Init(LowPassFilter1p_TypeDef *lpf, float alpha);
-//extern float LowPassFilter1p_Update(LowPassFilter1p_TypeDef *lpf, float input);
 
 // PID 模式枚举
 typedef enum {
@@ -88,7 +80,7 @@ typedef struct PID_Info_TypeDef {
 
     float Integral;            // 积分累加值
 
-    LowPassFilter1p_TypeDef Dout_LPF; // D项低通滤波器
+    LowPassFilter1p_Info_TypeDef Dout_LPF; // D项低通滤波器
     PID_ErrorHandler_t ERRORHandler;
 
     // 函数指针
